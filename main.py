@@ -1,21 +1,25 @@
 import numpy as np
 import pandas as pd
-import plotly.express as px
+# import plotly.express as px
 from scipy.linalg import block_diag
 from functions import *
 
 lb_df = pd.read_csv('lb_fixed_v2.csv')
 lb_np = np.expand_dims(lb_df.iloc[:, 3].to_numpy(), axis=1)
 
-x0 = solve_x0(lb_df)
+x0 = solve_x0_v2(lb_df)
+
 l0 = solve_l0(x0, lb_df)
 x0_np = xdf2xnp(x0)
+# x0_np = pd.read_csv('x0_fixed.csv',header=None).to_numpy()
 x0_story = x0_np
 
 A = a_calc(x0, lb_df)
 A_story = A
 
-P = block_diag(np.eye(8) * 0.01, np.eye(16) * 500, np.eye(1) * 0.01)
+# P = block_diag(np.eye(8) * 0.01, np.eye(16) * 500, np.eye(1) * 0.01)
+P = pd.read_csv('P_excel.csv',header=None).to_numpy()
+
 
 # np.savetxt('A.csv',A)
 

@@ -7,15 +7,15 @@ def azimuth(from_c, to_c, calc_x):
 		E_from = calc_x[(calc_x['POINT'] == from_c)].E.iloc[0]
 		N_from = calc_x[(calc_x['POINT'] == from_c)].N.iloc[0]
 	else:
-		E_from = 0
-		N_from = 0
+		E_from = 6000
+		N_from = 4000
 
 	if to_c != 'c1':
 		E_to = calc_x[(calc_x['POINT'] == to_c)].E.iloc[0]
 		N_to = calc_x[(calc_x['POINT'] == to_c)].N.iloc[0]
 	else:
-		E_to = 0
-		N_to = 0
+		E_to = 6000
+		N_to = 4000
 
 	dE = E_to - E_from
 	dN = N_to - N_from
@@ -93,37 +93,47 @@ def solve_x0_v2(l):
 	for row in range(0, rows_x):
 		N = np.cos(c1_values.iloc[row, 3]) * l[(l['FROM'] == 'c1') &
 		                                       (l['TO'] == c1_values.iloc[row, 1]) &
-		                                       (l['TYPE'] == 'dis')]['VALUE'].to_numpy()[0]
+		                                       (l['TYPE'] == 'dis')]['VALUE'].to_numpy()[0] + 4000
 		E = np.sin(c1_values.iloc[row, 3]) * l[(l['FROM'] == 'c1') &
 		                                       (l['TO'] == c1_values.iloc[row, 1]) &
-		                                       (l['TYPE'] == 'dis')]['VALUE'].to_numpy()[0]
+		                                       (l['TYPE'] == 'dis')]['VALUE'].to_numpy()[0] + 6000
 		calc_x = calc_x.append({'POINT': c1_values.iloc[row, 1], 'E': E, 'N': N, 'TYPE': 'cor'}, ignore_index=True)
 
 	test = []
 	for station in ['c1', 'c2', 'c3', 'c4', 'c5']:
 		dirs = l[(l['FROM'] == station) & (l['TYPE'] == 'dir')]
-		dir_min = dirs[dirs['VALUE'] == dirs.VALUE.min()]
-		from_c = dir_min.FROM.iloc[0]
-		to_c = dir_min.TO.iloc[0]
 
-		azi = azimuth(from_c, to_c, calc_x)
+		# dir_min = dirs[dirs['VALUE'] == dirs.VALUE.min()]
+		# from_c = dirs.iloc[0,0]
+		# to_c = dirs.iloc[0,1]
+		result = []
+
+		for row in range(dirs.shape[0]):
+			from_c = dirs.iloc[row, 0]
+			to_c = dirs.iloc[row, 1]
+			azi = azimuth(from_c, to_c, calc_x)
+
+			o_c = azi - dirs.iloc[row,3]
+
+			if o_c < 0:
+				o_c = o_c + 2 * np.pi
+
+			result.append(o_c)
+
 		# if azi < 0:
 		# 	azi = azi + 2*np.pi
 
-		dir_min = dir_min.VALUE.iloc[0]
-		test.append([from_c, to_c, azi * 180 / np.pi, dir_min * 180 / np.pi])
+		# dir_min = dir_min.VALUE.iloc[0]
 
-		o_c = None
+		o_c_avg = np.average(np.array(result))
+
 		# if azi<0:
 		# 	o_c = azi + 2*np.pi - dir_min
 		# elif (azi>0) & (azi<dir_min):
 		# 	o_c = azi - dir_min
-		o_c = azi - dir_min
 
-		# if o_c < 0:
-		# 	o_c = o_c + np.pi
 
-		calc_x = calc_x.append({'POINT': station, 'ORI': o_c, 'TYPE': 'ori'}, ignore_index=True)
+		calc_x = calc_x.append({'POINT': station, 'ORI': o_c_avg, 'TYPE': 'ori'}, ignore_index=True)
 	# print(pd.DataFrame(test))
 	# print(calc_x)
 	return calc_x
@@ -139,15 +149,15 @@ def solve_l0(x0, lb):
 		to_c = lb.iloc[row, 1]
 
 		if lb.iloc[row, 0] == 'c1':
-			from_e = 0
-			from_n = 0
+			from_e = 6000
+			from_n = 4000
 		else:
 			from_e = x0[(x0['POINT'] == lb.iloc[row, 0])]['E'].to_numpy()[0]
 			from_n = x0[(x0['POINT'] == lb.iloc[row, 0])]['N'].to_numpy()[0]
 
 		if lb.iloc[row, 1] == 'c1':
-			to_e = 0
-			to_n = 0
+			to_e = 6000
+			to_n = 4000
 		else:
 			to_e = x0[(x0['POINT'] == lb.iloc[row, 1])]['E'].to_numpy()[0]
 			to_n = x0[(x0['POINT'] == lb.iloc[row, 1])]['N'].to_numpy()[0]
@@ -168,10 +178,15 @@ def solve_l0(x0, lb):
 
 			azi = azimuth(from_c, to_c, x0)
 			b = 0
-			b = azi - ori_station
 
-			if b < 0:
-				b = b + np.pi * 2
+			if azi < ori_station:
+				b = np.pi * 2 - (ori_station - azi)
+			else:
+				b = azi - ori_station
+			# b = azi - ori_station
+
+			# if b < 0:
+			# 	b = b + np.pi * 2
 
 			l0 = l0.append({'VALUE': b}, ignore_index=True)
 			continue
@@ -227,15 +242,15 @@ def a_calc(calc_x, lb_df):
 			E_from = calc_x[(calc_x['POINT'] == from_c)].E.iloc[0]
 			N_from = calc_x[(calc_x['POINT'] == from_c)].N.iloc[0]
 		else:
-			E_from = 0
-			N_from = 0
+			E_from = 6000
+			N_from = 4000
 
 		if to_c != 'c1':
 			E_to = calc_x[(calc_x['POINT'] == to_c)].E.iloc[0]
 			N_to = calc_x[(calc_x['POINT'] == to_c)].N.iloc[0]
 		else:
-			E_to = 0
-			N_to = 0
+			E_to = 6000
+			N_to = 4000
 
 		dE = E_to - E_from
 		dN = N_to - N_from
