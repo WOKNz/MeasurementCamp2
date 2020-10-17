@@ -85,8 +85,8 @@ def solve_x0_v2(l):
 	c1_values = l[(l['FROM'] == "c1") & (l['TYPE'] == "dir")]
 	azi_fix = l[l['TYPE'] == "azi"]['VALUE'].to_numpy()[0]
 	azi_fix = c1_values[(c1_values['TO'] == "c3")]['VALUE'].to_numpy()[0] - azi_fix
-	c1_values.loc[:, 'VALUE'] = c1_values['VALUE'] - azi_fix
-	# print(c1_values)
+
+	c1_values.iloc[0:5, 3] = c1_values.iloc[0:5, 3] - azi_fix
 
 	calc_x = pd.DataFrame(columns=['POINT', 'E', 'N', 'ORI', 'TYPE'])
 	rows_x = c1_values.shape[0]

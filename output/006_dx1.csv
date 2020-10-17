@@ -1,0 +1,14 @@
+Type,Value,dim
+C2 (e),-9.09E-02,meter
+C2 (n),2.18E-02,meter
+C3 (e),5.98E-03,meter
+C3 (n),8.45E-03,meter
+C4 (e),8.03E-03,meter
+C4 (n),-2.32E-02,meter
+C5 (e),1.62E-02,meter
+C5 (n),-9.73E-02,meter
+C1 ref,5.24E-05,rad
+C2 ref,7.69E-05,rad
+C3 ref,3.94E-05,rad
+C4 ref,6.09E-05,rad
+C5 ref,7.51E-05,rad

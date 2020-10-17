@@ -1,0 +1,14 @@
+Type,Value,dim
+C2 (e),4.172,meter
+C2 (n),1.865,meter
+C3 (e),1.523,meter
+C3 (n),1.078,meter
+C4 (e),0.266,meter
+C4 (n),2.229,meter
+C5 (e),0.952,meter
+C5 (n),6.337,meter
+C1 ref,0.0045421,rad
+C2 ref,0.0045421,rad
+C3 ref,0.0045421,rad
+C4 ref,0.0045421,rad
+C5 ref,0.0045423,rad

@@ -1,12 +1,12 @@
+# %%
 import numpy as np
 import pandas as pd
 from scipy.linalg import block_diag
-from functions import *
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
-# defining variables
-x_tag = ['c2_e', 'c2_n', 'c3_e', 'c3_n',
-         'c4_e', 'c4_n', 'c5_e', 'c5_n',
-         'o1', 'o2', 'o3', 'o4', 'o5']
+plt.style.use('seaborn-whitegrid')
+from functions2 import *
 
 # import lb
 lb_df = pd.read_csv('lb_fixed_v2.csv')
@@ -16,20 +16,26 @@ to_lb = lb_df['TO'].tolist()
 lb_np = np.expand_dims(lb_df['VALUE'].to_numpy(), axis=1)
 
 # P calculating
-P = block_diag(np.eye(8) * 0.01, np.eye(16) * 500, np.eye(1) * 0.01)
+# P = block_diag(np.eye(8) * 0.01, np.eye(16) * 500, np.eye(1) * 0.01)
+P = pd.read_csv('P_excel.csv', header=None).to_numpy()
+
+# P = np.eye(25)
 
 # calculating x0
-x0 = solve_x0_v2(lb_df)
+x0 = pd.read_csv('x0_initial.csv', index_col=False)
+x0_np = xdf2xnp(x0)
+dict_x = {'c2': [0, 1], 'c3': [2, 3], 'c4': [4, 5], 'c5': [6, 7], 'c1_ori': 8, 'c2_ori': 9, 'c3_ori': 10, 'c4_ori': 11,
+          'c5_ori': 12}
 
 # calculate l0
-l0 = solve_l0(x0, lb_df)
+l0 = solve_l0(x0_np, from_lb, to_lb, dict_x)
+# l0.to_csv('l0_first_test2.csv')
 
 # calculating la
-la = lb_df.iloc[:, 3].to_numpy() - l0.iloc[:, 0].to_numpy()
-la = np.expand_dims(la, axis=0).T
+la = np.expand_dims(lb_df.iloc[:, 3].to_numpy(), axis=0).T - l0
 
 # calculatin a
-A = a_calc(x0, lb_df)
+A = a_calc(x0_np, from_lb, to_lb, dict_x)
 
 # calculating N and u
 N = np.dot(np.dot(A.T, P), A)
@@ -37,33 +43,79 @@ u = np.dot(np.dot(A.T, P), la)
 
 dx = np.dot(np.linalg.inv(N), u)
 
-x0 = updateXdf(dx, x0)
+x0 = x0_np + dx
+
 v = np.dot(A, dx) - la
+sig_post = np.dot(np.dot(v.T, P), v) / (25 - 13)
+error_full = sig_post * np.linalg.inv(N)
+error = np.sqrt(sig_post * np.linalg.inv(N).diagonal())
+test_final = np.dot(np.dot(A.T, P), v)
+
+ellipses = getEllipses(error_full[:8, :8], 2)
+
+if True:
+	# np.savetxt('output/004_P.csv', P.diagonal(), delimiter=',')
+	# np.savetxt('output/005_x0.csv',x0_np,delimiter=',')
+	# np.savetxt('output/002_l0.csv',l0,delimiter=',')
+	# np.savetxt('output/003_la.csv',la,delimiter=',')
+	# np.savetxt('output/001_A.csv',A,delimiter=',')
+	# np.savetxt('output/006_dx1.csv',dx,delimiter=',')
+	# np.savetxt('output/007_xa1.csv',x0,delimiter=',')
+	# np.savetxt('output/009_v1.csv',v,delimiter=',')
+	# np.savetxt('output/sig_post.csv',sig_post,delimiter=',')
+	# np.savetxt('output/008_error.csv',error.T,delimiter=',')
+	# np.savetxt('output/test_final.csv',test_final,delimiter=',')
+	# np.savetxt('output/ellipses.csv',ellipses,delimiter=',')
+	pass
 
 # loop
-i = 0
-while not ((np.max(np.abs(dx[0:8, 0])) < 0.001) and (np.max(np.abs(dx[8:, 0])) < (5.0 / 3600) * np.pi / 180)):
-	i += 1
-	l0 = solve_l0(x0, lb_df)
+# i = 0
 
-	A = a_calc(x0, lb_df)
-	la = lb_df.iloc[:, 3].to_numpy() - l0.iloc[:, 0].to_numpy()
-	la = np.expand_dims(la, axis=0).T
-	# la_story = np.hstack((la_story,la))
+if ((np.max(np.abs(dx[0:8, 0])) < 0.0001) and (np.max(np.abs(dx[8:, 0])) < (0.1 / 3600) * np.pi / 180)):
+	while not ((np.max(np.abs(dx[0:8, 0])) < 0.00001) and (np.max(np.abs(dx[8:, 0])) < (0.1 / 3600) * np.pi / 180)):
+		# if i == 10:
+		# 	break
+		# i += 1
+		l0 = solve_l0(x0, from_lb, to_lb, dict_x)
 
-	N = np.dot(np.dot(A.T, P), A)
-	u = np.dot(np.dot(A.T, P), la)
+		A = a_calc(x0, from_lb, to_lb, dict_x)
+		la = np.expand_dims(lb_df.iloc[:, 3].to_numpy(), axis=0).T - l0
 
-	dx = np.dot(np.linalg.inv(N), u)
-	# dx_story = np.hstack((dx_story,dx))
+		N = np.dot(np.dot(A.T, P), A)
+		u = np.dot(np.dot(A.T, P), la)
 
-	x0 = updateXdf(dx, x0)
-	# x0_story = np.hstack((x0_story,xdf2xnp(x0)))
-	# fig = px.scatter(x=x0.iloc[0:4, 1].to_list(), y=x0.iloc[0:4, 2].to_list(), text=['c3','c4','c5','c2'])
-	# fig.show()
+		dx = np.dot(np.linalg.inv(N), u)
 
-	v = np.dot(A, dx) - la
-	# v_story = np.hstack((v_story,v))
-	print(np.dot(v.T, v))
+		x0 = x0 + dx
 
-print('pause')
+		v = np.dot(A, dx) - la
+
+		print(np.dot(v.T, v)[0, 0])
+
+	# print(np.max(np.abs(dx[0:8, 0])))
+	# print(np.max(np.abs(dx[8:, 0])))
+	# print((np.max(np.abs(dx[0:8, 0])) < 0.00001))
+	# print((np.max(np.abs(dx[8:, 0])) < (0.1 / 3600) * np.pi / 180))
+
+else:
+	print('One iteration only')
+
+xs = [6000]
+xs.extend((x0[0:8:2].flatten()).tolist())
+ys = [4000]
+ys.extend((x0[1:8:2].flatten()).tolist())
+
+plt.plot(xs, ys, 'o', color='black')
+for x, y, label in zip(xs, ys, ['C1', 'C2', 'C3', 'C4', 'C5']):
+	plt.annotate(label,  # this is the text
+	             (x, y),  # this is the point to label
+	             textcoords="offset points",  # how to position the text
+	             xytext=(0, 10),  # distance from text to points (x,y)
+	             ha='center')  # horizontal alignment can be left, right or center
+
+plt.savefig('draft_plot.png', dpi=300)
+plt.show()
+
+print('Done')
+
+# %%

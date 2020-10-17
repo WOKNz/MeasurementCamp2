@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import pandas as pd
 # import plotly.express as px
@@ -7,7 +8,11 @@ from functions import *
 lb_df = pd.read_csv('lb_fixed_v2.csv')
 lb_np = np.expand_dims(lb_df.iloc[:, 3].to_numpy(), axis=1)
 
-x0 = solve_x0_v2(lb_df)
+# x0 = solve_x0_v2(lb_df)
+# x0.to_csv('x0_initial.csv')
+
+x0 = pd.read_csv('x0_initial.csv', index_col=False)
+# print(x0.dtypes)
 
 l0 = solve_l0(x0, lb_df)
 x0_np = xdf2xnp(x0)
@@ -19,6 +24,7 @@ A_story = A
 
 # P = block_diag(np.eye(8) * 0.01, np.eye(16) * 500, np.eye(1) * 0.01)
 P = pd.read_csv('P_excel.csv',header=None).to_numpy()
+# P = np.eye(25)
 
 
 # np.savetxt('A.csv',A)
@@ -47,6 +53,8 @@ v_story = v
 
 i = 0
 while not ((np.max(np.abs(dx[0:8, 0])) < 0.001) and (np.max(np.abs(dx[8:, 0])) < (5.0 / 3600) * np.pi / 180)):
+	if i == 10:
+		break
 	i += 1
 	l0 = solve_l0(x0, lb_df)
 
@@ -69,31 +77,12 @@ while not ((np.max(np.abs(dx[0:8, 0])) < 0.001) and (np.max(np.abs(dx[8:, 0])) <
 
 	v = np.dot(A, dx) - la
 	v_story = np.hstack((v_story, v))
+
+	sig_post = np.dot(np.dot(v.T, P), v)[0, 0]
+	error = sig_post ** 2 * np.linalg.inv(N)
+
 	print(np.max(np.abs(v)))
 
-# #iter2
-# x0 = updateXdf(dx,x0)
-# l0 = solve_l0(x0, lb_df)
-# A = a_calc(x0,lb_df)
-# la = lb_df.iloc[:,3].to_numpy()-l0.iloc[:,0].to_numpy()
-# la = np.expand_dims(la,axis=0).T
-#
-# N = np.dot(A.T,A)
-# u = np.dot(A.T,la)
-#
-# dx = np.dot(np.linalg.inv(N),u)
-#
-# #iter3
-# x0 = updateXdf(dx,x0)
-# l0 = solve_l0(x0, lb_df)
-# A = a_calc(x0,lb_df)
-# la = lb_df.iloc[:,3].to_numpy()-l0.iloc[:,0].to_numpy()
-# la = np.expand_dims(la,axis=0).T
-#
-# N = np.dot(A.T,A)
-# u = np.dot(A.T,la)
-#
-# dx = np.dot(np.linalg.inv(N),u)
-
-
 print('wait')
+
+# %%
